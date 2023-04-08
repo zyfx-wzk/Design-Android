@@ -1,6 +1,7 @@
 package wzk.zyfx.design;
 
 import android.app.Application;
+import android.content.Context;
 import com.elvishew.xlog.LogConfiguration;
 import com.elvishew.xlog.LogLevel;
 import com.elvishew.xlog.XLog;
@@ -8,6 +9,9 @@ import com.elvishew.xlog.printer.AndroidPrinter;
 import com.elvishew.xlog.printer.Printer;
 import com.tencent.smtt.export.external.TbsCoreSettings;
 import com.tencent.smtt.sdk.QbSdk;
+import wzk.zyfx.design.util.HeaderUtil;
+import wzk.zyfx.design.util.SettingUtil;
+import wzk.zyfx.design.util.StaticTextUtil;
 
 import java.util.HashMap;
 
@@ -20,19 +24,30 @@ public class BaseApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-        initXLog();
+        initXlog();
+        initUtil();
         initX5WebView();
     }
 
     /**
      * 日志框架初始化
      */
-    private void initXLog() {
+    private void initXlog() {
         LogConfiguration config = new LogConfiguration.Builder()
                 .logLevel(LogLevel.INFO)
                 .build();
         Printer androidPrinter = new AndroidPrinter();
         XLog.init(config, androidPrinter);
+    }
+
+    /**
+     * 工具类初始化
+     */
+    private void initUtil() {
+        Context context = getApplicationContext();
+        HeaderUtil.init(context);
+        SettingUtil.init(context);
+        StaticTextUtil.init(context);
     }
 
     /**

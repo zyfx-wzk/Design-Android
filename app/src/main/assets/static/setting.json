@@ -1,0 +1,8 @@
+{
+  "downloader-timeout": 5000,
+  "spider-url-base": "http://www.tjrac.edu.cn/",
+  "spider-url-news": "newslist.aspx?depcode=301",
+  "spider-url-anno": "announcelist.aspx?depcode=301",
+  "spider-rule-info-list": "//a[@class]/../../div",
+  "spider-rule-page-list": "//a[@class]/../../following-sibling::div[1]/a"
+}

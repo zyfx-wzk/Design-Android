@@ -19,6 +19,7 @@ public class X5WebView extends WebView {
     public X5WebView(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
         WebViewClient client = new WebViewClient() {
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 view.loadUrl(url);
                 return true;

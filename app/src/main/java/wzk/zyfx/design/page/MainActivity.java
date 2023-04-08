@@ -4,11 +4,9 @@ import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.Window;
 import androidx.appcompat.app.AppCompatActivity;
-import com.elvishew.xlog.XLog;
 import com.tencent.smtt.export.external.interfaces.JsResult;
 import com.tencent.smtt.sdk.WebChromeClient;
 import com.tencent.smtt.sdk.WebView;
-import com.tencent.smtt.sdk.WebViewClient;
 import wzk.zyfx.design.R;
 import wzk.zyfx.design.base.JsFunction;
 import wzk.zyfx.design.base.X5WebView;
@@ -39,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
 
         //加载页面和JS映射
         JsFunction.getInstance().setX5WebView(x5WebView);
-        x5WebView.loadUrl("http://192.168.0.102:5173/");
+        x5WebView.loadUrl("http://192.168.0.102:8080/");
         x5WebView.addJavascriptInterface(JsFunction.getInstance(), "jsFunction");
     }
 
@@ -48,8 +46,9 @@ public class MainActivity extends AppCompatActivity {
      */
     @Override
     protected void onDestroy() {
-        if (x5WebView != null)
+        if (x5WebView != null) {
             x5WebView.destroy();
+        }
         super.onDestroy();
     }
 

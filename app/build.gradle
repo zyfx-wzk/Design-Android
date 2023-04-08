@@ -29,11 +29,17 @@ android {
 }
 
 dependencies {
-
+    //腾讯X5内核
     api 'com.tencent.tbs:tbssdk:44286'
-
     //日志框架
     implementation 'com.elvishew:xlog:1.7.2'
+    //hutool工具库
+    implementation 'cn.hutool:hutool-all:5.8.13'
+    //Jsoup Xpath语法解析库
+    implementation 'cn.wanghaomiao:JsoupXpath:2.2'
+    //lombok
+    compileOnly 'org.projectlombok:lombok:1.18.22'
+    annotationProcessor 'org.projectlombok:lombok:1.18.22'
 
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'com.google.android.material:material:1.5.0'
