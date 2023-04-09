@@ -2,9 +2,11 @@ package wzk.zyfx.design.base;
 
 import android.app.Activity;
 import android.webkit.JavascriptInterface;
+import cn.hutool.core.thread.ThreadUtil;
+import cn.hutool.core.util.EscapeUtil;
+import cn.hutool.core.util.ReUtil;
 import cn.hutool.json.JSONArray;
-import com.elvishew.xlog.XLog;
-import com.tencent.smtt.sdk.ValueCallback;
+import cn.hutool.json.JSONObject;
 import wzk.zyfx.design.core.SpiderCore;
 import wzk.zyfx.design.util.StaticTextUtil;
 
@@ -25,21 +27,47 @@ public class JsFunction extends Activity {
         this.x5WebView = x5WebView;
     }
 
+    //无法立即返回数据的,统一用异步函数包裹
+
     @JavascriptInterface
-    public void postPageListInfo() throws InterruptedException {
-        while (true) {
-            //轮询一下数据,刚初始化时有可能数据还没有完全下来
-            JSONArray pageListInfo = SpiderCore.getInstance().getPageListInfo();
-            if (pageListInfo != null) {
-                runOnUiThread(() -> x5WebView.evaluateJavascript(
-                        StaticTextUtil.getInstance().getFunctionText("backPageListInfo", pageListInfo.toString()),
-                        s -> {
-
-                        }));
-                break;
+    public void postPageListInfo() {
+        ThreadUtil.execAsync(() -> {
+            while (true) {
+                //轮询一下数据,刚初始化时有可能数据还没有完全下来
+                JSONArray pageListInfo = SpiderCore.getInstance().getPageListInfo();
+                if (pageListInfo != null) {
+                    runOnUiThread(() -> x5WebView.evaluateJavascript(
+                            StaticTextUtil.getInstance().getFunctionText("backPageListInfo",
+                                    pageListInfo.toString()), s -> {
+                            }));
+                    break;
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
-            Thread.sleep(1000);
-        }
+        });
+    }
 
+    @JavascriptInterface
+    public void postCurInfoList(int index, int size) {
+        JSONObject curInfoList = SpiderCore.getInstance().getCurInfoList(index, size);
+        runOnUiThread(() -> x5WebView.evaluateJavascript(
+                StaticTextUtil.getInstance().getFunctionText("backCurInfoList",
+                        curInfoList.toString()), s -> {
+                }));
+    }
+
+    @JavascriptInterface
+    public void postArticleContent(String url) {
+        ThreadUtil.execAsync(() -> {
+            String content = SpiderCore.getInstance().getArticleContent(url);
+            runOnUiThread(() -> x5WebView.evaluateJavascript(
+                    StaticTextUtil.getInstance().getFunctionText("backArticleContent",
+                            EscapeUtil.escape(content)), s -> {
+                    }));
+        });
     }
 }

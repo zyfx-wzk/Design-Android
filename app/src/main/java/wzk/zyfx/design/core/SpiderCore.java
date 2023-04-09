@@ -2,6 +2,7 @@ package wzk.zyfx.design.core;
 
 import cn.hutool.core.collection.ConcurrentHashSet;
 import cn.hutool.core.thread.ThreadUtil;
+import cn.hutool.core.util.ReUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.elvishew.xlog.XLog;
@@ -29,17 +30,8 @@ public class SpiderCore {
         return instance;
     }
 
-    /**
-     * 基础地址
-     */
     private final String baseUrl;
-    /**
-     * 新闻地址
-     */
     private final String newsUrl;
-    /**
-     * 公告地址
-     */
     private final String annoUrl;
 
     private final Map<Integer, List<ArticleBean>> pageInfoList = new HashMap<>();
@@ -59,20 +51,14 @@ public class SpiderCore {
         }
         JSONArray result = new JSONArray();
         for (Map.Entry<Integer, Set<ArticleBean>> entry : pageInfoMap.entrySet()) {
-            //当已排序的列表与已存列表数目不同时,则认为有数据更新,重新进行排序
-            List<ArticleBean> tempList = pageInfoList.getOrDefault(entry.getKey(), new ArrayList<>());
-            if (tempList != null && tempList.size() != entry.getValue().size()) {
-                tempList.clear();
-                tempList.addAll(entry.getValue());
-                tempList.sort((a, b) -> b.getDate().compareTo(a.getDate()));
-            }
-            pageInfoList.put(entry.getKey(), tempList);
+            sortPageInfoList();
+            List<ArticleBean> tempList = pageInfoList.get(entry.getKey());
             if (entry.getValue().size() == 0 || tempList == null) {
                 return null;
             }
             //组装发给前端的数据
             JSONArray array = new JSONArray();
-            for (int i = 0; i < Math.min(tempList.size(), 10); i++) {
+            for (int i = 0; i < Math.min(tempList.size(), 20); i++) {
                 JSONObject json = JSONUtil.createObj()
                         .putOnce("id", tempList.get(i).getId())
                         .putOnce("title", tempList.get(i).getTitle())
@@ -88,7 +74,56 @@ public class SpiderCore {
         return result;
     }
 
-    private void initPageInfoMap() {
+    public JSONObject getCurInfoList(int index, int size) {
+        JSONObject result = new JSONObject();
+        result.putOnce("index", index);
+        if (pageInfoMap.get(index) == null) {
+            return result;
+        }
+        sortPageInfoList();
+        List<ArticleBean> tempList = pageInfoList.get(index);
+        if (tempList == null || tempList.size() <= size) {
+            return result;
+        }
+        JSONArray array = new JSONArray();
+        for (int i = size; i < Math.min(tempList.size(), size + 20); i++) {
+            JSONObject json = JSONUtil.createObj()
+                    .putOnce("id", tempList.get(i).getId())
+                    .putOnce("title", tempList.get(i).getTitle())
+                    .putOnce("time", tempList.get(i).getTime())
+                    .putOnce("url", tempList.get(i).getUrl());
+            array.add(json);
+        }
+        return result.putOnce("info", array);
+    }
+
+    //获取页面具体内容
+    public String getArticleContent(String url) {
+        String content = Downloader.getInstance().getHtml(baseUrl + url);
+        //处理下所有的图片地址和宽度
+        content = ReUtil.replaceAll(content, "<img src=\"(.+?)\"",
+                "<img src=\"" + baseUrl + "$1\" style=\"width:680px");
+        content = ReUtil.replaceAll(content, "px", "upx");
+        content = ReUtil.delAll("<p>公告信息</p>", content);
+        content = ReUtil.delAll("<p>新闻资讯</p>", content);
+        return content;
+    }
+
+    //按时间对已有数据排序
+    private void sortPageInfoList() {
+        for (Map.Entry<Integer, Set<ArticleBean>> entry : pageInfoMap.entrySet()) {
+            //当已排序的列表与已存列表数目不同时,则认为有数据更新,重新进行排序
+            List<ArticleBean> tempList = pageInfoList.getOrDefault(entry.getKey(), new ArrayList<>());
+            if (tempList != null && tempList.size() != entry.getValue().size()) {
+                tempList.clear();
+                tempList.addAll(entry.getValue());
+                tempList.sort((a, b) -> b.getDate().compareTo(a.getDate()));
+            }
+            pageInfoList.put(entry.getKey(), tempList);
+        }
+    }
+
+    public void initPageInfoMap() {
         for (int i = 0; i < 2; i++) {
             int index = i;
             ThreadUtil.execAsync(() -> {
@@ -102,11 +137,11 @@ public class SpiderCore {
     private void initPageInfo(int index, Set<ArticleBean> set) {
         switch (index) {
             case 0: {
-                initInfoList(newsUrl, set);
+                initInfoList(annoUrl, set);
                 break;
             }
             case 1: {
-                initInfoList(annoUrl, set);
+                initInfoList(newsUrl, set);
                 break;
             }
             default:

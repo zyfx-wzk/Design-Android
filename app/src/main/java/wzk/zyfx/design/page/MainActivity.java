@@ -27,6 +27,8 @@ public class MainActivity extends AppCompatActivity {
         x5WebView.getSettingsExtension().setContentCacheEnable(true);
         //刘海屏适配
         x5WebView.getSettingsExtension().setDisplayCutoutEnable(true);
+        //支持缩放
+        x5WebView.getSettingsExtension().setAutoRecoredAndRestoreScaleEnabled(true);
         //JS提示框适配
         x5WebView.setWebChromeClient(new WebChromeClient() {
             @Override
