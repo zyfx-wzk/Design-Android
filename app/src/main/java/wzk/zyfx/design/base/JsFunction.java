@@ -4,10 +4,10 @@ import android.app.Activity;
 import android.webkit.JavascriptInterface;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.EscapeUtil;
-import cn.hutool.core.util.ReUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import wzk.zyfx.design.core.SpiderCore;
+import wzk.zyfx.design.util.SettingUtil;
 import wzk.zyfx.design.util.StaticTextUtil;
 
 /**
@@ -30,7 +30,8 @@ public class JsFunction extends Activity {
     //无法立即返回数据的,统一用异步函数包裹
 
     @JavascriptInterface
-    public void postPageListInfo() {
+    public void postPageListInfo(int index) {
+        SettingUtil.getInstance().reload("tjra");
         ThreadUtil.execAsync(() -> {
             while (true) {
                 //轮询一下数据,刚初始化时有可能数据还没有完全下来
@@ -38,15 +39,11 @@ public class JsFunction extends Activity {
                 if (pageListInfo != null) {
                     runOnUiThread(() -> x5WebView.evaluateJavascript(
                             StaticTextUtil.getInstance().getFunctionText("backPageListInfo",
-                                    pageListInfo.toString()), s -> {
+                                    EscapeUtil.escape(pageListInfo.toString())), s -> {
                             }));
                     break;
                 }
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                ThreadUtil.sleep(1000);
             }
         });
     }

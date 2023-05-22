@@ -30,23 +30,25 @@ public class SpiderCore {
         return instance;
     }
 
-    private final String baseUrl;
-    private final String newsUrl;
-    private final String annoUrl;
+    private String baseUrl;
+    private String newsUrl;
+    private String annoUrl;
+    private String flashUrl;
 
     private final Map<Integer, List<ArticleBean>> pageInfoList = new HashMap<>();
 
     private final Map<Integer, Set<ArticleBean>> pageInfoMap = new ConcurrentHashMap<>();
 
-    public SpiderCore() {
+    public void reload() {
         baseUrl = SettingUtil.getInstance().getStr("spider-url-base");
         newsUrl = baseUrl + SettingUtil.getInstance().getStr("spider-url-news");
         annoUrl = baseUrl + SettingUtil.getInstance().getStr("spider-url-anno");
+        flashUrl = baseUrl + SettingUtil.getInstance().getStr("spider-url-flash");
         initPageInfoMap();
     }
 
     public JSONArray getPageListInfo() {
-        if (pageInfoMap.size() != 2) {
+        if (pageInfoMap.size() != 3) {
             return null;
         }
         JSONArray result = new JSONArray();
@@ -100,12 +102,19 @@ public class SpiderCore {
     //获取页面具体内容
     public String getArticleContent(String url) {
         String content = Downloader.getInstance().getHtml(baseUrl + url);
+        String ruleArticle = SettingUtil.getInstance().getStr("spider-rule-article");
+        //提取具体文章内容
+        JXDocument jxDocument = JXDocument.create(content);
+        List<JXNode> jxNodeList = jxDocument.selN(ruleArticle);
+        StringBuilder stringBuilder = new StringBuilder();
+        for (JXNode jxNode : jxNodeList) {
+            stringBuilder.append(jxNode.asElement().html());
+        }
+        content = stringBuilder.toString();
         //处理下所有的图片地址和宽度
         content = ReUtil.replaceAll(content, "<img src=\"(.+?)\"",
                 "<img src=\"" + baseUrl + "$1\" style=\"width:680px");
         content = ReUtil.replaceAll(content, "px", "upx");
-        content = ReUtil.delAll("<p>公告信息</p>", content);
-        content = ReUtil.delAll("<p>新闻资讯</p>", content);
         return content;
     }
 
@@ -124,7 +133,7 @@ public class SpiderCore {
     }
 
     public void initPageInfoMap() {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 3; i++) {
             int index = i;
             ThreadUtil.execAsync(() -> {
                 Set<ArticleBean> set = new ConcurrentHashSet<>();
@@ -143,6 +152,9 @@ public class SpiderCore {
             case 1: {
                 initInfoList(newsUrl, set);
                 break;
+            }
+            case 2: {
+                initInfoList(flashUrl, set);
             }
             default:
         }
@@ -173,30 +185,33 @@ public class SpiderCore {
                                      List<ArticleBean> infoList, List<String> pageList) {
         JXDocument jxDocument = JXDocument.create(Downloader.getInstance().getHtml(url));
         String ruleInfo = SettingUtil.getInstance().getStr("spider-rule-info-list");
+        String ruleTime = SettingUtil.getInstance().getStr("spider-rule-time_list");
         String rulePage = SettingUtil.getInstance().getStr("spider-rule-page-list");
-        try {
-            List<JXNode> infoNodeList = jxDocument.selN(ruleInfo);
-            List<JXNode> pageNodeList = jxDocument.selN(rulePage);
-            //拼接文章信息
-            for (int i = 0; i < infoNodeList.size(); i += 2) {
+        List<JXNode> infoNodeList = jxDocument.selN(ruleInfo);
+        List<JXNode> timeNodeList = jxDocument.selN(ruleTime);
+        List<JXNode> pageNodeList = jxDocument.selN(rulePage);
+        //拼接文章信息
+        for (int i = 0; i < infoNodeList.size(); i++) {
+            try {
                 ArticleBean articleBean = new ArticleBean();
-                Element temp = infoNodeList.get(i).asElement().child(0);
+                Element temp = infoNodeList.get(i).asElement();
                 articleBean.setUrl(temp.attr("href"));
                 articleBean.setTitle(temp.text());
-                if (infoNodeList.get(i + 1) != null) {
-                    articleBean.setTime(infoNodeList.get(i + 1).asElement().ownText());
+                if (timeNodeList.get(i) != null) {
+                    articleBean.setTime(timeNodeList.get(i).asElement().ownText());
                 }
                 infoList.add(articleBean);
+            } catch (Exception e) {
+                e.printStackTrace();
+                XLog.e("Xpath匹配错误");
             }
-            if (isLoop || pageList == null) {
-                return;
-            }
-            //拼接页面信息
-            for (JXNode page : pageNodeList) {
-                pageList.add(page.asElement().attr("href"));
-            }
-        } catch (XpathSyntaxErrorException e) {
-            XLog.e("Xpath语法错误,检查配置中的语法规则是否正确");
+        }
+        if (isLoop || pageList == null) {
+            return;
+        }
+        //拼接页面信息
+        for (JXNode page : pageNodeList) {
+            pageList.add(page.asElement().attr("href"));
         }
     }
 }

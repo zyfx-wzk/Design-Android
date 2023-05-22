@@ -23,12 +23,18 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
         x5WebView = findViewById(R.id.x5WebView);
-        //前进后退缓存
-        x5WebView.getSettingsExtension().setContentCacheEnable(true);
-        //刘海屏适配
-        x5WebView.getSettingsExtension().setDisplayCutoutEnable(true);
-        //支持缩放
-        x5WebView.getSettingsExtension().setAutoRecoredAndRestoreScaleEnabled(true);
+        if (x5WebView.getSettingsExtension() != null) {
+            try {
+                //前进后退缓存
+                x5WebView.getSettingsExtension().setContentCacheEnable(true);
+                //刘海屏适配
+                x5WebView.getSettingsExtension().setDisplayCutoutEnable(true);
+                //支持缩放
+                x5WebView.getSettingsExtension().setAutoRecoredAndRestoreScaleEnabled(true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         //JS提示框适配
         x5WebView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -39,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
         //加载页面和JS映射
         JsFunction.getInstance().setX5WebView(x5WebView);
-        x5WebView.loadUrl("http://192.168.0.102:8080/");
+        x5WebView.loadUrl("http://192.168.3.43:8081/");
         x5WebView.addJavascriptInterface(JsFunction.getInstance(), "jsFunction");
     }
 

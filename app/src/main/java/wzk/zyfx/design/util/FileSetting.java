@@ -5,7 +5,7 @@ package wzk.zyfx.design.util;
  * @date 2023/3/5 1:08
  */
 public enum FileSetting {
-    PATCH_SETTING("static/setting.json"),
+    PATCH_SETTING("static/setting-{0}.json"),
     PATCH_USER_AGENT("static/user-agent.json"),
     PATCH_STATIC_TEXT("static/static-text.json");
 

@@ -1,0 +1,11 @@
+{
+  "downloader-timeout": 5000,
+  "spider-url-base": "http://www.tjrac.edu.cn/",
+  "spider-url-news": "newslist.aspx?depcode=301",
+  "spider-url-anno": "announcelist.aspx?depcode=301",
+  "spider-url-flash": "newsflashlist.aspx",
+  "spider-rule-info-list": "//a[@class]/../../div/a[@title]",
+  "spider-rule-time_list": "//a[@class]/../../div[@style='float:right;width:120px;height:25px;padding-top:8px;text-align:right;border-bottom:1px dashed #555']",
+  "spider-rule-page-list": "//a[@class]/../../following-sibling::div[1]/a",
+  "spider-rule-article": "//div[@class='content_block wraper']/div"
+}

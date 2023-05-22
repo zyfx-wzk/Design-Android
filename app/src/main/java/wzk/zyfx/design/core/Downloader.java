@@ -5,12 +5,15 @@ import cn.hutool.core.io.IoUtil;
 import cn.hutool.http.Header;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
+import com.elvishew.xlog.XLog;
+import wzk.zyfx.design.util.FileSetting;
 import wzk.zyfx.design.util.HeaderUtil;
 import wzk.zyfx.design.util.SettingUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author WangZhiKang
@@ -29,9 +32,9 @@ public class Downloader {
     /**
      * 请求超时时间
      */
-    private static int REQUEST_TIME_OUT;
+    private static int REQUEST_TIME_OUT = 5000;
 
-    private Downloader() {
+    public void reload() {
         REQUEST_TIME_OUT = SettingUtil.getInstance().getInt("downloader-timeout");
     }
 
