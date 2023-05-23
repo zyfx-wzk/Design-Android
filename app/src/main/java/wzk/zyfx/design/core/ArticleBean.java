@@ -16,15 +16,10 @@ import java.util.Objects;
 @Getter
 @Setter
 public class ArticleBean {
-    private String id;
     private String title;
     private Date date;
     private String time;
     private String url;
-
-    public ArticleBean() {
-        id = IdUtil.randomUUID();
-    }
 
     public void setTime(String time) {
         this.time = time;
@@ -40,12 +35,12 @@ public class ArticleBean {
             return false;
         }
         ArticleBean that = (ArticleBean) o;
-        return Objects.equals(id, that.id) && Objects.equals(title, that.title)
+        return Objects.equals(title, that.title)
                 && Objects.equals(time, that.time) && Objects.equals(url, that.url);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, title, time, url);
+        return Objects.hash(title, time, url);
     }
 }

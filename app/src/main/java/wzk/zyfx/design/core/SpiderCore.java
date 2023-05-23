@@ -64,7 +64,6 @@ public class SpiderCore {
             JSONArray array = new JSONArray();
             for (int i = 0; i < Math.min(tempList.size(), 20); i++) {
                 JSONObject json = JSONUtil.createObj()
-                        .putOnce("id", tempList.get(i).getId())
                         .putOnce("title", tempList.get(i).getTitle())
                         .putOnce("time", tempList.get(i).getTime())
                         .putOnce("url", tempList.get(i).getUrl());
@@ -92,7 +91,6 @@ public class SpiderCore {
         JSONArray array = new JSONArray();
         for (int i = size; i < Math.min(tempList.size(), size + 20); i++) {
             JSONObject json = JSONUtil.createObj()
-                    .putOnce("id", tempList.get(i).getId())
                     .putOnce("title", tempList.get(i).getTitle())
                     .putOnce("time", tempList.get(i).getTime())
                     .putOnce("url", tempList.get(i).getUrl());
@@ -176,7 +174,7 @@ public class SpiderCore {
                     List<ArticleBean> tempList = new ArrayList<>();
                     for (String page : pageList.subList(0, Math.min(pageList.size(), maxCount))) {
                         tempList.clear();
-                        initInfoAndPageList(pageList.get(pageList.size() - 1), true, tempList, null);
+                        initInfoAndPageList(page, true, tempList, null);
                         set.addAll(tempList);
                     }
                 });
