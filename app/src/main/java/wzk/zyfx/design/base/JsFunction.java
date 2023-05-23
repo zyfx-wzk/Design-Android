@@ -30,8 +30,14 @@ public class JsFunction extends Activity {
     //无法立即返回数据的,统一用异步函数包裹
 
     @JavascriptInterface
-    public void postPageListInfo(int index) {
-        SettingUtil.getInstance().reload("tjra");
+    public void postPageListInfo(int index, boolean init) {
+        if (init) {
+            if (index == 0) {
+                SettingUtil.getInstance().reload("tj");
+            } else if (index == 1) {
+                SettingUtil.getInstance().reload("tjra");
+            }
+        }
         ThreadUtil.execAsync(() -> {
             while (true) {
                 //轮询一下数据,刚初始化时有可能数据还没有完全下来

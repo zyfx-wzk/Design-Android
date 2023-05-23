@@ -3,6 +3,7 @@ package wzk.zyfx.design.core;
 import cn.hutool.core.collection.ConcurrentHashSet;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.ReUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.elvishew.xlog.XLog;
@@ -10,7 +11,6 @@ import cn.hutool.json.JSONArray;
 import org.jsoup.nodes.Element;
 import org.seimicrawler.xpath.JXDocument;
 import org.seimicrawler.xpath.JXNode;
-import org.seimicrawler.xpath.exception.XpathSyntaxErrorException;
 import wzk.zyfx.design.util.SettingUtil;
 
 import java.util.*;
@@ -31,9 +31,9 @@ public class SpiderCore {
     }
 
     private String baseUrl;
-    private String newsUrl;
-    private String annoUrl;
-    private String flashUrl;
+    private String news1Url;
+    private String news2Url;
+    private String news3Url;
 
     private final Map<Integer, List<ArticleBean>> pageInfoList = new HashMap<>();
 
@@ -41,9 +41,11 @@ public class SpiderCore {
 
     public void reload() {
         baseUrl = SettingUtil.getInstance().getStr("spider-url-base");
-        newsUrl = baseUrl + SettingUtil.getInstance().getStr("spider-url-news");
-        annoUrl = baseUrl + SettingUtil.getInstance().getStr("spider-url-anno");
-        flashUrl = baseUrl + SettingUtil.getInstance().getStr("spider-url-flash");
+        news1Url = baseUrl + SettingUtil.getInstance().getStr("spider-url-news1");
+        news2Url = baseUrl + SettingUtil.getInstance().getStr("spider-url-news2");
+        news3Url = baseUrl + SettingUtil.getInstance().getStr("spider-url-news3");
+        pageInfoMap.clear();
+        pageInfoList.clear();
         initPageInfoMap();
     }
 
@@ -101,18 +103,18 @@ public class SpiderCore {
 
     //获取页面具体内容
     public String getArticleContent(String url) {
-        String content = Downloader.getInstance().getHtml(baseUrl + url);
+        String content = Downloader.getInstance().getHtml(url);
         String ruleArticle = SettingUtil.getInstance().getStr("spider-rule-article");
         //提取具体文章内容
         JXDocument jxDocument = JXDocument.create(content);
         List<JXNode> jxNodeList = jxDocument.selN(ruleArticle);
         StringBuilder stringBuilder = new StringBuilder();
         for (JXNode jxNode : jxNodeList) {
-            stringBuilder.append(jxNode.asElement().html());
+            stringBuilder.append(jxNode.asElement().toString());
         }
         content = stringBuilder.toString();
         //处理下所有的图片地址和宽度
-        content = ReUtil.replaceAll(content, "<img src=\"(.+?)\"",
+        content = ReUtil.replaceAll(content, "<img src=\"/(.+?)\"",
                 "<img src=\"" + baseUrl + "$1\" style=\"width:680px");
         content = ReUtil.replaceAll(content, "px", "upx");
         return content;
@@ -146,15 +148,15 @@ public class SpiderCore {
     private void initPageInfo(int index, Set<ArticleBean> set) {
         switch (index) {
             case 0: {
-                initInfoList(annoUrl, set);
+                initInfoList(news1Url, set);
                 break;
             }
             case 1: {
-                initInfoList(newsUrl, set);
+                initInfoList(news2Url, set);
                 break;
             }
             case 2: {
-                initInfoList(flashUrl, set);
+                initInfoList(news3Url, set);
             }
             default:
         }
@@ -164,24 +166,41 @@ public class SpiderCore {
         List<ArticleBean> infoList = new ArrayList<>();
         List<String> pageList = new ArrayList<>();
         //初始化查询页面,可能不存在页面列表
+        int maxCount = SettingUtil.getInstance().getInt("spider-rule-page-count");
+        String pageType = SettingUtil.getInstance().getStr("spider-rule-page-type");
         initInfoAndPageList(url, false, infoList, pageList);
-        if (pageList.size() > 0) {
-            ThreadUtil.execAsync(() -> {
-                List<ArticleBean> tempList = new ArrayList<>();
-                for (String page : pageList) {
-                    tempList.clear();
-                    initInfoAndPageList(baseUrl + page, true, tempList, null);
-                    set.addAll(tempList);
-                    XLog.d(url + "类型总数: " + set.size());
+        //根据页面类型不同，选择不同的递进规则
+        if ("all".equals(pageType)) {
+            if (pageList.size() > 0) {
+                ThreadUtil.execAsync(() -> {
+                    List<ArticleBean> tempList = new ArrayList<>();
+                    for (String page : pageList.subList(0, Math.min(pageList.size(), maxCount))) {
+                        tempList.clear();
+                        initInfoAndPageList(pageList.get(pageList.size() - 1), true, tempList, null);
+                        set.addAll(tempList);
+                    }
+                });
+                return;
+            }
+            set.addAll(infoList);
+        } else if ("next".equals(pageType)) {
+            if (pageList.size() > 0) {
+                while (pageList.size() < maxCount) {
+                    List<ArticleBean> result = new ArrayList<>();
+                    List<String> tempList = new ArrayList<>();
+                    initInfoAndPageList(pageList.get(pageList.size() - 1), false, result, tempList);
+                    set.addAll(result);
+                    if (tempList.size() == 0) {
+                        break;
+                    }
+                    pageList.addAll(tempList);
                 }
-            });
-            return;
+            }
+            set.addAll(infoList);
         }
-        set.addAll(infoList);
-        XLog.d(url + "类型总数: " + set.size());
     }
 
-    private void initInfoAndPageList(String url, boolean isLoop,
+    private void initInfoAndPageList(String url, boolean isAddPage,
                                      List<ArticleBean> infoList, List<String> pageList) {
         JXDocument jxDocument = JXDocument.create(Downloader.getInstance().getHtml(url));
         String ruleInfo = SettingUtil.getInstance().getStr("spider-rule-info-list");
@@ -191,14 +210,24 @@ public class SpiderCore {
         List<JXNode> timeNodeList = jxDocument.selN(ruleTime);
         List<JXNode> pageNodeList = jxDocument.selN(rulePage);
         //拼接文章信息
+        String base = ReUtil.get(".*/", url, 0);
         for (int i = 0; i < infoNodeList.size(); i++) {
             try {
                 ArticleBean articleBean = new ArticleBean();
                 Element temp = infoNodeList.get(i).asElement();
-                articleBean.setUrl(temp.attr("href"));
+                //处理跳转路径
+                String href = temp.attr("href");
+                String tempBase = base;
+                while (href.startsWith("../")) {
+                    href = href.substring(3);
+                    tempBase = tempBase.substring(0, tempBase.length() - 1);
+                    int length = tempBase.lastIndexOf('/');
+                    tempBase = tempBase.substring(0, length + 1);
+                }
+                articleBean.setUrl(tempBase + href);
                 articleBean.setTitle(temp.text());
                 if (timeNodeList.get(i) != null) {
-                    articleBean.setTime(timeNodeList.get(i).asElement().ownText());
+                    articleBean.setTime(timeNodeList.get(i).asElement().text());
                 }
                 infoList.add(articleBean);
             } catch (Exception e) {
@@ -206,12 +235,12 @@ public class SpiderCore {
                 XLog.e("Xpath匹配错误");
             }
         }
-        if (isLoop || pageList == null) {
+        if (isAddPage || pageList == null) {
             return;
         }
         //拼接页面信息
         for (JXNode page : pageNodeList) {
-            pageList.add(page.asElement().attr("href"));
+            pageList.add(base + page.asElement().attr("href"));
         }
     }
 }

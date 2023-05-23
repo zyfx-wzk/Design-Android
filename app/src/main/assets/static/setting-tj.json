@@ -1,0 +1,13 @@
+{
+  "downloader-timeout": 5000,
+  "spider-url-base": "http://news.tju.edu.cn/",
+  "spider-url-news1": "jjtd.htm",
+  "spider-url-news2": "zhxw.htm",
+  "spider-url-news3": "xnxw1/qb.htm",
+  "spider-rule-info-list": "//ul[@class='indexList']//h4/a",
+  "spider-rule-time_list": "//ul[@class='indexList']//h5",
+  "spider-rule-page-list": "//a[@class='Next'][1]",
+  "spider-rule-page-type": "next",
+  "spider-rule-page-count": "50",
+  "spider-rule-article": "//form[@name='_newscontent_fromname']/*[not(contains(@class,'contentTime'))]"
+}
